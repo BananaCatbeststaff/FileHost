@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileHost - Hospedagem de Arquivos Direta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #f8f9ff, #e8f0fe);
+        }
+
+        .upload-area:hover {
+            border-color: #5a67d8;
+            background: linear-gradient(45deg, #e8f0fe, #dbeafe);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #4299e1;
+            background: linear-gradient(45deg, #dbeafe, #bfdbfe);
+        }
+
+        .upload-area.uploading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            color: #718096;
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102,126,234,0.4);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .files-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .files-header {
+            font-size: 2rem;
+            color: #2d3748;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .file-item {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .file-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .file-size {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .file-url {
+            background: #f7fafc;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #4a5568;
+            word-break: break-all;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn {
+            background: #48bb78;
+            color: white;
+        }
+
+        .copy-btn:hover {
+            background: #38a169;
+        }
+
+        .download-btn {
+            background: #4299e1;
+            color: white;
+        }
+
+        .download-btn:hover {
+            background: #3182ce;
+        }
+
+        .delete-btn {
+            background: #f56565;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #e53e3e;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            max-width: 400px;
+        }
+
+        .toast.success {
+            background: #48bb78;
+        }
+
+        .toast.error {
+            background: #f56565;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .server-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 10px;
+            color: #4a5568;
+        }
+
+        .refresh-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #3182ce;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-section, .files-section {
+                padding: 20px;
+            }
+            
+            .file-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .file-actions {
+                width: 100%;
+            }
+            
+            .action-btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 FileHost</h1>
+            <p>Hospedagem de arquivos direta com backend Node.js</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">☁️</div>
+                <div class="upload-text">Arraste arquivos aqui ou clique para selecionar</div>
+                <div class="upload-subtext">Limite: 50MB por arquivo | Múltiplos arquivos suportados</div>
+                <input type="file" class="file-input" id="fileInput" multiple>
+                <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('fileInput').click()">
+                    Selecionar Arquivos
+                </button>
+            </div>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="files-section">
+            <h2 class="files-header">Arquivos Hospedados</h2>
+            <div class="server-info" id="serverInfo">
+                <span>Carregando informações do servidor...</span>
+                <button class="refresh-btn" onclick="loadFiles()">🔄 Atualizar</button>
+            </div>
+            <div id="filesList">
+                <!-- Arquivos serão listados aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração da API
+        const API_BASE = window.location.origin;
+        
+        // Elementos DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const filesList = document.getElementById('filesList');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const serverInfo = document.getElementById('serverInfo');
+
+        // Event listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        async function handleFiles(fileList) {
+            if (fileList.length === 0) return;
+
+            // Check if backend is available first
+            try {
+                const testResponse = await fetch(`${API_BASE}/api/info`);
+                const contentType = testResponse.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Backend não disponível');
+                }
+            } catch (error) {
+                showToast('❌ Backend não encontrado. Inicie o servidor Node.js primeiro!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            Array.from(fileList).forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                uploadArea.classList.add('uploading');
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Enviando...';
+                progressBar.style.display = 'block';
+                progressFill.style.width = '0%';
+
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    progressFill.style.width = '100%';
+                    showToast(result.message, 'success');
+                    await loadFiles();
+                } else {
+                    throw new Error(result.error || 'Erro no upload');
+                }
+
+            } catch (error) {
+                console.error('Erro no upload:', error);
+                showToast('Erro no upload: ' + error.message, 'error');
+            } finally {
+                uploadArea.classList.remove('uploading');
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Selecionar Arquivos';
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 1000);
+                
+                // Limpar input
+                fileInput.value = '';
+            }
+        }
+
+        // Demo mode function
+        function showDemoMode() {
+            const demoFiles = [
+                {
+                    id: 'demo1',
+                    name: 'exemplo-documento.pdf',
+                    size: '2.3 MB',
+                    url: '#demo-url-1'
+                },
+                {
+                    id: 'demo2',
+                    name: 'imagem-exemplo.jpg',
+                    size: '1.8 MB',
+                    url: '#demo-url-2'
+                },
+                {
+                    id: 'demo3',
+                    name: 'video-demo.mp4',
+                    size: '15.2 MB',
+                    url: '#demo-url-3'
+                }
+            ];
+
+            filesList.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #fef3cd; border-radius: 10px; color: #856404;">
+                    <strong>⚠️ Modo Demonstração</strong><br>
+                    Para usar todas as funcionalidades, inicie o servidor Node.js backend
+                </div>
+                ${demoFiles.map(file => `
+                    <div class="file-item" style="opacity: 0.7;">
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${file.size}</div>
+                        </div>
+                        <div class="file-url">${window.location.origin}/files/${file.id}</div>
+                        <div class="file-actions">
+                            <button class="action-btn copy-btn" onclick="showToast('Modo demo - Backend necessário', 'error')">📋 Copiar URL</button>
+                            <button class="action-btn download-btn" onclick="showToast('Modo demo - Backend necessário', 'error')">⬇️ Download</button>
+                            <button class="action-btn delete-btn" onclick="showToast('Modo demo - Backend necessário', 'error')">🗑️ Deletar</button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function loadFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/api/files`);
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Backend não encontrado. Verifique se o servidor Node.js está rodando.');
+                }
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    renderFiles(data.files);
+                } else {
+                    throw new Error(data.error || 'Erro ao carregar arquivos');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar arquivos:', error);
+                
+                // Show demo mode if backend is not available
+                if (error.message.includes('Backend não encontrado') || error.message.includes('Failed to fetch')) {
+                    showDemoMode();
+                } else {
+                    showToast('Erro ao carregar arquivos: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function loadServerInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/api/info`);
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Backend não encontrado');
+                }
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    serverInfo.innerHTML = `
+                        📊 ${data.totalFiles} arquivos | ${data.totalSize} usado | Limite: ${data.maxFileSize} por arquivo
+                        <button class="refresh-btn" onclick="loadFiles()">🔄 Atualizar</button>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erro ao carregar informações');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar informações:', error);
+                
+                if (error.message.includes('Backend não encontrado') || error.message.includes('Failed to fetch')) {
+                    serverInfo.innerHTML = `
+                        ⚠️ Backend não encontrado - <strong>Modo Demonstração</strong>
+                        <button class="refresh-btn" onclick="loadServerInfo()">🔄 Tentar conectar</button>
+                    `;
+                } else {
+                    serverInfo.innerHTML = `
+                        ❌ Erro ao conectar com o servidor
+                        <button class="refresh-btn" onclick="loadServerInfo()">🔄 Tentar novamente</button>
+                    `;
+                }
+            }
+        }
+
+        function renderFiles(files) {
+            if (files.length === 0) {
+                filesList.innerHTML = '<p style="text-align: center; color: #718096; font-size: 1.1rem;">Nenhum arquivo hospedado ainda</p>';
+                return;
+            }
+
+            filesList.innerHTML = files.map(file => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${file.size}</div>
+                    </div>
+                    <div class="file-url">${file.url}</div>
+                    <div class="file-actions">
+                        <button class="action-btn copy-btn" onclick="copyUrl('${file.url}')">📋 Copiar URL</button>
+                        <button class="action-btn download-btn" onclick="downloadFile('${file.id}')">⬇️ Download</button>
+                        <button class="action-btn delete-btn" onclick="deleteFile('${file.id}')">🗑️ Deletar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('URL copiada para a área de transferência!', 'success');
+            }).catch(() => {
+                showToast('Erro ao copiar URL', 'error');
+            });
+        }
+
+        function downloadFile(fileId) {
+            const downloadUrl = `${API_BASE}/api/download/${fileId}`;
+            window.open(downloadUrl, '_blank');
+        }
+
+        async function deleteFile(fileId) {
+            if (!confirm('Tem certeza que deseja deletar este arquivo?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/files/${fileId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    await loadFiles();
+                    await loadServerInfo();
+                } else {
+                    throw new Error(result.error || 'Erro ao deletar arquivo');
+                }
+            } catch (error) {
+                console.error('Erro ao deletar arquivo:', error);
+                showToast('Erro ao deletar arquivo: ' + error.message, 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR');
+        }
+
+        // Error handling for fetch requests
+        async function fetchWithErrorHandling(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFiles();
+            await loadServerInfo();
+        });
+
+        // Handle network errors
+        window.addEventListener('online', () => {
+            showToast('Conexão restaurada!', 'success');
+            loadFiles();
+            loadServerInfo();
+        });
+
+        window.addEventListener('offline', () => {
+            showToast('Conexão perdida. Verifique sua internet.', 'error');
+        });
+
+        // Handle file validation
+        function validateFile(file) {
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            const allowedTypes = [
+                'image/', 'video/', 'audio/', 'text/', 'application/pdf',
+                'application/zip', 'application/x-zip-compressed',
+                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            if (file.size > maxSize) {
+                throw new Error(`Arquivo "${file.name}" é muito grande. Máximo: 50MB`);
+            }
+
+            const isAllowed = allowedTypes.some(type => file.type.startsWith(type));
+            if (!isAllowed) {
+                throw new Error(`Tipo de arquivo "${file.type}" não permitido para "${file.name}"`);
+            }
+
+            return true;
+        }
+
+        // Enhanced file handling with validation
+        async function handleFilesWithValidation(fileList) {
+            try {
+                // Validate all files first
+                Array.from(fileList).forEach(file => {
+                    validateFile(file);
+                });
+
+                // If all files are valid, proceed with upload
+                await handleFiles(fileList);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Update file input handler to use validation
+        fileInput.addEventListener('change', (e) => {
+            handleFilesWithValidation(e.target.files);
+        });
+
+        // Update drop handler to use validation
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFilesWithValidation(files);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + U for upload
+            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+                e.preventDefault();
+                fileInput.click();
+            }
+            
+            // F5 or Ctrl/Cmd + R for refresh
+            if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key === 'r')) {
+                e.preventDefault();
+                loadFiles();
+                loadServerInfo();
+            }
+        });
+    </script>
+</body>
+</html>
